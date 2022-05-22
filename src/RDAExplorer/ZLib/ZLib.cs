@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.IO;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using ICSharpCode.SharpZipLib.Zip.Compression;
+using ICSharpCode.SharpZipLib;
 
 namespace RDAExplorer.ZLib
 {
@@ -19,42 +20,59 @@ namespace RDAExplorer.ZLib
 
         public static byte[] Uncompress(byte[] input, int uncompressedSize, out int result)
         {
-            Stream stream = new MemoryStream(input);
-            var decompressionStream = new InflaterInputStream(stream);
-            var decompressedFileStream = new MemoryStream();
-            stream.Position = 0;
+            try
+            {
+                Stream stream = new MemoryStream(input);
+                stream.Position = 0;
 
-            decompressionStream.CopyTo(decompressedFileStream);
+                var decompressionStream = new InflaterInputStream(stream);
+                var decompressedFileStream = new MemoryStream(uncompressedSize);
 
-            byte[] bytes = decompressedFileStream.ToArray();
+                decompressionStream.CopyTo(decompressedFileStream);
 
-            result = (int)decompressedFileStream.Length;
+                byte[] bytes = decompressedFileStream.ToArray();
 
-            decompressedFileStream.Dispose();
-            decompressionStream.Dispose();
-            stream.Dispose();
+                result = (int)decompressedFileStream.Length;
 
-            return bytes;
+                decompressedFileStream.Dispose();
+                decompressionStream.Dispose();
+                stream.Dispose();
+
+                return bytes;
+            }
+            catch (SharpZipBaseException e)
+            {
+                result = 0;
+                return new byte[0];
+            }
         }
 
         public static byte[] Compress(byte[] input)
         {
-            Stream stream = new MemoryStream(input);
+            try
+            {
+                Stream stream = new MemoryStream(input);
 
-            var memoryStream = new MemoryStream();
-            var deflaterStream = new DeflaterOutputStream(memoryStream, new Deflater(CompressionLevel));
+                var memoryStream = new MemoryStream();
+                var deflaterStream = new DeflaterOutputStream(memoryStream, new Deflater(CompressionLevel));
 
-            //write input stream to the deflater stream 
-            stream.Position = 0;
-            stream.CopyTo(deflaterStream);
-            deflaterStream.Close();
+                //write input stream to the deflater stream 
+                stream.Position = 0;
+                stream.CopyTo(deflaterStream);
+                deflaterStream.Close();
 
-            byte[] bytes = memoryStream.ToArray();
-            memoryStream.Dispose();
-            deflaterStream.Dispose();
-            stream.Dispose();
+                byte[] bytes = memoryStream.ToArray();
+                memoryStream.Dispose();
+                deflaterStream.Dispose();
+                stream.Dispose();
 
-            return bytes;
+                return bytes;
+            }
+            
+            catch (SharpZipBaseException e)
+            {
+                return new byte[0];
+            }
         }
     }
 }
